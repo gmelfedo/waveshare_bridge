@@ -1,0 +1,26 @@
+name: "Waveshare Modbus TCP Bridge"
+description: "Interfaccia in tempo reale per schede Waveshare 8-Relay Modbus TCP con gestione timer e MQTT Discovery."
+version: "1.0.0"
+slug: "waveshare_modbus_bridge"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+options:
+  modbus_ip: ""
+  modbus_port: 4196
+  device_name: "Sesamo Autisti"
+  mqtt_broker: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_password: ""
+schema:
+  modbus_ip: "str"
+  modbus_port: "int"
+  device_name: "str"
+  mqtt_broker: "str"
+  mqtt_port: "int"
+  mqtt_user: "str?"
+  mqtt_password: "str?"
