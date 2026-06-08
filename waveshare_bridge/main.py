@@ -5,33 +5,42 @@ import asyncio
 from pymodbus.client import AsyncModbusTcpClient
 import paho.mqtt.client as mqtt
 
-# Negli Add-on di Home Assistant, le configurazioni della UI si trovano in questo file JSON
 OPTIONS_FILE = "/data/options.json"
-DATA_FILE = "/data/timer_config.json"
+DATA_FILE = "/data/timer_config.json" # Su Portainer mapperemo una cartella in /data
 
 # ==============================================================================
-# 1. CARICAMENTO CONFIGURAZIONI ADD-ON
+# 1. CARICAMENTO CONFIGURAZIONI (IBRIDO: ADD-ON / ENV PORTAINER)
 # ==============================================================================
-if not os.path.exists(OPTIONS_FILE):
-    print(f"[Core] ERRORE CRITICO: File di configurazione dell'add-on non trovato in {OPTIONS_FILE}")
-    sys.exit(1)
+if os.path.exists(OPTIONS_FILE):
+    # COMPORTAMENTO: HOME ASSISTANT ADD-ON
+    print("[Core] Rilevato ambiente Home Assistant Add-on. Caricamento opzioni da UI...")
+    with open(OPTIONS_FILE, "r") as f:
+        options = json.load(f)
+    
+    MODBUS_IP = options.get("modbus_ip")
+    MODBUS_PORT = int(options.get("modbus_port", 4196))
+    DEVICE_NAME = options.get("device_name", "Sesamo Autisti")
+    MQTT_BROKER = options.get("mqtt_broker", "core-mosquitto")
+    MQTT_PORT = int(options.get("mqtt_port", 1883))
+    MQTT_USER = options.get("mqtt_user")
+    MQTT_PASSWORD = options.get("mqtt_password")
+else:
+    # COMPORTAMENTO: STANDALONE (PORTAINER / DOCKER ENV)
+    print("[Core] Ambiente standard rilevato. Caricamento opzioni da ENV...")
+    MODBUS_IP = os.getenv("MODBUS_IP")
+    MODBUS_PORT = int(os.getenv("MODBUS_PORT", 4196))
+    DEVICE_NAME = os.getenv("DEVICE_NAME", "Sesamo Autisti")
+    MQTT_BROKER = os.getenv("MQTT_BROKER")
+    MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
+    MQTT_USER = os.getenv("MQTT_USER")
+    MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
-with open(OPTIONS_FILE, "r") as f:
-    options = json.load(f)
-
-MODBUS_IP = options.get("modbus_ip")
-MODBUS_PORT = int(options.get("modbus_port", 4196))
-DEVICE_NAME = options.get("device_name", "Sesamo Autisti")
+# ID pulito derivato dal nome del dispositivo per i topic e gli unique_id
 DEVICE_ID_CLEAN = DEVICE_NAME.lower().replace(" ", "_")
 
-MQTT_BROKER = options.get("mqtt_broker", "core-mosquitto")
-MQTT_PORT = int(options.get("mqtt_port", 1883))
-MQTT_USER = options.get("mqtt_user")
-MQTT_PASSWORD = options.get("mqtt_password")
-
-# Verifica parametri obbligatori
+# Verifica parametri obbligatori (valida per entrambi gli ambienti)
 if not MODBUS_IP or not MQTT_BROKER:
-    print("\n" + "!"*60 + "\n ERRORE: 'modbus_ip' e 'mqtt_broker' sono campi obbligatori!\n Controlla la scheda Configurazione dell'Add-on.\n" + "!"*60 + "\n")
+    print("\n" + "!"*60 + "\n ERRORE CRITICO: Configurazione incompleta!\n Assicurati di aver impostato sia l'IP Modbus che il Broker MQTT.\n" + "!"*60 + "\n")
     sys.exit(1)
 
 SLAVE_ID = 1
